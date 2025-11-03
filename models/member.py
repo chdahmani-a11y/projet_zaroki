@@ -1,5 +1,4 @@
 # models/member.py
-
 from interfaces.payable import Payable
 
 class Member(Payable):
@@ -16,7 +15,16 @@ class Member(Payable):
         self.subscription_status = subscription_status
 
     def is_paid(self):
+        """Retourne True si le membre a payé son abonnement"""
         return self.subscription_status.strip().lower() == "paid"
+
+    def process_payment(self):
+        """Implémentation concrète de la méthode abstraite Payable"""
+        if not self.is_paid():
+            self.subscription_status = "paid"
+            print(f"[Paiement traité] {self.first_name} {self.family_name} a maintenant payé son abonnement.")
+        else:
+            print(f"[Info] {self.first_name} {self.family_name} est déjà à jour.")
 
     def __str__(self):
         return f"{self.family_name} {self.first_name} ({self.subscription_status})"
