@@ -1,38 +1,84 @@
 # club.py
-
 from data_loader import load_members_from_file
+import html
+import os
 
 class ScientificClub:
-    def __init__(self, name, data_file):
+    def __init__(self, name: str, data_file: str):
         self.name = name
         self.data_file = data_file
-        self.members = load_members_from_file(data_file)
+        self.members = []  
+             
+  
+    def load_data(self):
+        """
+        يقرأ الملف association_data.txt ويحوّل كل سطر إلى كائن Member 
+        باستخدام الدالة load_members_from_file الموجودة في data_loader.py
+        """
+        self.members = load_members_from_file(self.data_file)
+        return self.members
 
-    def count_paid_members(self):
-        """Retourne le nombre de membres ayant payé."""
-        return sum(1 for m in self.members if m.is_paid())
+    def display_members(self, limit=20):
+        
+        if not self.members:
+            print("Aucun membre chargé.")
+            return
+        print(f"\n=== Liste des membres du club '{self.name}' ===")
+        for m in self.members[:limit]:
+            
+            print(f"- {m}")
+        print(f"... ({len(self.members)} membres au total)")
 
-    def total_members(self):
-        """Retourne le nombre total de membres."""
-        return len(self.members)
+    def generate_html_report(self, output_file="association_data.html"):
+        
+        if not self.members:
+            print("Aucun membre à exporter en HTML.")
+            return
 
-    def paid_percentage(self):
-        """Calcule le pourcentage de membres ayant payé."""
-        total = self.total_members()
-        return round((self.count_paid_members() / total) * 100, 2) if total > 0 else 0
+        
+        headers = ["student_id", "family_name", "first_name", "email", "phone", "address", "join_date", "subscription_status"]
 
-    def generate_html_report(self, output_file="club_report.html"):
-        """Génère une page HTML avec statistiques et liste des membres."""
-        html = ["<html><head><meta charset='utf-8'><title>Rapport du Club</title></head><body>"]
-        html.append(f"<h2>Club Scientifique : {self.name}</h2>")
-        html.append(f"<p>Total des membres : {self.total_members()}</p>")
-        html.append(f"<p>Membres ayant payé : {self.count_paid_members()} ({self.paid_percentage()}%)</p>")
-        html.append("<table border='1'><tr><th>ID</th><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th><th>Statut</th></tr>")
+        html_parts = []
+        html_parts.append("<!doctype html>")
+        html_parts.append("<html lang='fr'>")
+        html_parts.append("<head><meta charset='utf-8' /><title>Rapport des membres</title></head>")
+        html_parts.append("<body>")
+        html_parts.append(f"<h2>Liste des membres — {html.escape(self.name)}</h2>")
+        html_parts.append("<table border='1' cellpadding='5' cellspacing='0'>")
+        # header
+        html_parts.append("<thead><tr>")
+        for h in headers:
+            html_parts.append(f"<th>{html.escape(h)}</th>")
+        html_parts.append("</tr></thead>")
+        # body
+        html_parts.append("<tbody>")
         for m in self.members:
-            html.append(m.to_html_row())
-        html.append("</table></body></html>")
+            
+            try:
+                rowd = m.to_dict()
+            except Exception:
+                
+                rowd = {
+                    "student_id": getattr(m, "student_id", ""),
+                    "family_name": getattr(m, "family_name", ""),
+                    "first_name": getattr(m, "first_name", ""),
+                    "email": getattr(m, "email", ""),
+                    "phone": getattr(m, "phone", ""),
+                    "address": getattr(m, "address", ""),
+                    "join_date": getattr(m, "join_date", ""),
+                    "subscription_status": getattr(m, "subscription_status", "")
+                }
+            html_parts.append("<tr>")
+            for h in headers:
+                val = str(rowd.get(h, ""))
+                html_parts.append(f"<td>{html.escape(val)}</td>")
+            html_parts.append("</tr>")
+        html_parts.append("</tbody></table>")
+        html_parts.append("</body></html>")
 
+        content = "\n".join(html_parts)
+        
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write("\n".join(html))
+            f.write(content)
 
-        print(f"✅ Rapport HTML généré : {output_file}")
+        print(f"✅ Rapport HTML généré : {os.path.abspath(output_file)}")
